@@ -19,18 +19,18 @@ const getGroupKey = (group: string, e: Event) => {
   }
 
   if (group === 'reply') {
-    return Tags.from(e).getReply().getValue();
+    return Tags.fromEvent(e).reply().value();
   }
 
   if (group === 'root') {
-    return Tags.from(e).getRoot().getValue();
+    return Tags.fromEvent(e).root().value();
   }
 
   if (group.match(/^created_at\/\d+$/)) {
     return Math.floor(e.created_at / parseInt(group.split('/').slice(-1)[0]));
   }
 
-  return Tags.from(e).type(group).getValue() || '';
+  return Tags.fromEvent(e).get(group)?.value() || '';
 };
 
 async function* countWithProgress({
@@ -81,7 +81,7 @@ export const configureCountAgent = () => (dvm: DVM) => ({
   handleEvent: async function* (event: Event) {
     const groups = getInputParams(event, 'group');
 
-    const result = groups.length > 0 ? {} : 0;
+    let result = groups.length > 0 ? {} : 0;
 
     yield* countWithProgress({
       dvm,
@@ -91,7 +91,7 @@ export const configureCountAgent = () => (dvm: DVM) => ({
       init: (sub: Subscription) => {
         sub.on('event', (e: Event) => {
           if (groups.length === 0) {
-            (result as number)++;
+            (result as number) += 1;
           } else {
             let data: any = result;
 

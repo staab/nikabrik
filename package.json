@@ -1,6 +1,6 @@
 {
   "name": "nikabrik",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "A utility for building DVMs",
   "author": "hodlbod",
   "license": "MIT",
@@ -39,7 +39,7 @@
     "hurdak": "^0.2.6",
     "navigatr": "^0.0.3",
     "nostr-tools": "^1.15.0",
-    "paravel": "^0.4.1"
+    "paravel": "^0.5.4"
   },
   "devDependencies": {
     "@types/node": "20.4.6",

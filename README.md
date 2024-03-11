@@ -3,13 +3,13 @@
 Utilities for building DVMs on nostr. See `count` for an example of how to build a custom dvm handler.
 
 ```javascript
-import {DVM, countHandlers} from 'nikabrik'
+import {DVM, countAgents} from 'nikabrik'
 
 const dvm = new DVM({
   sk: 'your dvm private key here',
   relays: ['wss://relay.damus.io'],
-  handlers: {
-    ...countHandlers,
+  agents: {
+    ...countAgents,
   }
 })
 
