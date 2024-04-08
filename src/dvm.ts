@@ -1,6 +1,8 @@
 import type {Event, EventTemplate} from 'nostr-tools';
+import type {Filter} from '@coracle.social/util';
 import {getSignature, getPublicKey, getEventHash} from 'nostr-tools';
-import {now, Subscription, Pool, Relays, Executor} from 'paravel';
+import {now} from '@coracle.social/lib';
+import {subscribe, publish} from '@coracle.social/network';
 import {getInputTag} from './util';
 
 export type DVMAgent = {
@@ -14,31 +16,17 @@ export type DVMOpts = {
   sk: string;
   relays: string[];
   agents: Record<string, CreateDVMAgent>;
+  strict?: boolean;
 };
 
 export class DVM {
   seen = new Set();
-  pool = new Pool();
   agents = new Map();
   stopped = false;
 
   constructor(readonly opts: DVMOpts) {
     this.init();
     this.listen();
-  }
-
-  getExecutor(urls: string[]) {
-    return new Executor(
-      new Relays(
-        urls.map(url => {
-          const connection = this.pool.get(url);
-
-          connection.socket.ready.catch(() => null);
-
-          return connection;
-        })
-      )
-    );
   }
 
   init() {
@@ -50,16 +38,24 @@ export class DVM {
   async listen() {
     this.stopped = false;
 
+    const {strict, sk, relays} = this.opts;
+
+    const filter: Filter = {
+      kinds: Array.from(this.agents.keys()),
+      since: now(),
+    };
+
+    if (strict) {
+      filter['#p'] = [getPublicKey(sk)];
+    }
+
     while (!this.stopped) {
       await new Promise<void>(resolve => {
-        const sub = new Subscription({
-          timeout: 30_000,
-          executor: this.getExecutor(this.opts.relays),
-          filters: [{kinds: Array.from(this.agents.keys()), since: now()}],
-        });
+        const sub = subscribe({timeout: 30_000, relays, filters: [filter]});
 
-        sub.on('event', e => this.onEvent(e));
-        sub.on('close', () => resolve());
+        // @ts-ignore
+        sub.emitter.on('event', (url, e) => this.onEvent(e));
+        sub.emitter.on('complete', () => resolve());
       });
     }
   }
@@ -70,8 +66,6 @@ export class DVM {
     }
 
     const agent = this.agents.get(e.kind);
-
-    console.log(e, agent, this.agents);
 
     if (!agent) {
       return;
@@ -86,7 +80,12 @@ export class DVM {
     for await (const event of agent.handleEvent(e)) {
       if (event.kind !== 7000) {
         event.tags.push(['request', JSON.stringify(e)]);
-        event.tags.push(getInputTag(e)!);
+
+        const inputTag = getInputTag(e);
+
+        if (inputTag) {
+          event.tags.push(inputTag);
+        }
       }
 
       event.tags.push(['p', e.pubkey]);
@@ -102,7 +101,6 @@ export class DVM {
 
   async publish(template: EventTemplate) {
     const {sk, relays} = this.opts;
-    const executor = this.getExecutor(relays);
     const event = template as any;
 
     event.pubkey = getPublicKey(sk);
@@ -110,16 +108,7 @@ export class DVM {
     event.sig = getSignature(event, sk);
 
     await new Promise<void>(resolve => {
-      const done = () => {
-        resolve();
-        executor.target.cleanup();
-      };
-
-      executor.publish(event, {
-        verb: 'EVENT',
-        onOk: done,
-        onError: done,
-      });
+      publish({event, relays}).emitter.on('success', () => resolve());
     });
   }
 
@@ -128,7 +117,6 @@ export class DVM {
       agent.stop?.();
     }
 
-    this.pool.clear();
     this.stopped = true;
   }
 }

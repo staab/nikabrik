@@ -1,9 +1,12 @@
 import type {Event} from 'nostr-tools';
-import type {Filter} from 'paravel';
-import {Tags, createEvent, Subscription, now} from 'paravel';
+import type {Subscription} from '@coracle.social/network';
+import type {Filter} from '@coracle.social/util';
+import {now} from '@coracle.social/lib';
+import {Tags, createEvent} from '@coracle.social/util';
+import {subscribe} from '@coracle.social/network';
 import {seconds} from 'hurdak';
 import type {DVM} from '../dvm';
-import {getInputParams, getInputValue} from '../util';
+import {getInputParams, withExpiration, getInputValue} from '../util';
 
 type CountWithProgressOpts = {
   dvm: DVM;
@@ -40,11 +43,11 @@ async function* countWithProgress({
   init,
   getResult,
 }: CountWithProgressOpts) {
-  const sub = new Subscription({
+  const sub = subscribe({
     filters,
     timeout: 30000,
     closeOnEose: true,
-    executor: dvm.getExecutor(getInputParams(event, 'relay')),
+    relays: getInputParams(event, 'relay'),
   });
 
   init(sub);
@@ -52,7 +55,7 @@ async function* countWithProgress({
   let done = false;
   let prev = '0';
 
-  sub.on('close', () => {
+  sub.emitter.on('complete', () => {
     done = true;
   });
 
@@ -64,7 +67,7 @@ async function* countWithProgress({
     if (cur !== prev) {
       yield createEvent(7000, {
         content: cur,
-        tags: [['expiration', String(now() + seconds(1, 'minute'))]],
+        tags: withExpiration([]),
       });
     }
 
@@ -89,7 +92,7 @@ export const configureCountAgent = () => (dvm: DVM) => ({
       filters: JSON.parse(getInputValue(event)),
       getResult: () => JSON.stringify(result),
       init: (sub: Subscription) => {
-        sub.on('event', (e: Event) => {
+        sub.emitter.on('event', (e: Event) => {
           if (groups.length === 0) {
             (result as number) += 1;
           } else {

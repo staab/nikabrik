@@ -1,6 +1,6 @@
 {
   "name": "nikabrik",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "A utility for building DVMs",
   "author": "hodlbod",
   "license": "MIT",
@@ -24,28 +24,25 @@
     "build"
   ],
   "scripts": {
-    "pub": "pnpm i && pnpm run lint && tsc-multi && pnpm publish",
+    "pub": "npm i && npm run lint && tsc-multi && npm publish",
     "build": "tsc-multi",
     "clean": "gts clean",
     "lint": "gts lint",
-    "fix": "gts fix",
-    "prepare": "pnpm build",
-    "pretest": "pnpm build",
-    "posttest": "pnpm lint"
+    "fix": "gts fix"
   },
   "dependencies": {
+    "@coracle.social/lib": "^0.0.4",
+    "@coracle.social/network": "^0.0.7",
+    "@coracle.social/util": "^0.0.6",
     "dotenv": "^16.3.1",
     "fuse.js": "^7.0.0",
     "hurdak": "^0.2.6",
     "navigatr": "^0.0.3",
-    "nostr-tools": "^1.15.0",
-    "paravel": "^0.5.4"
+    "nostr-tools": "^1.15.0"
   },
   "devDependencies": {
     "@types/node": "20.4.6",
     "gts": "^5.0.1",
-    "npm-run-all": "^4.1.5",
-    "onchange": "^7.1.0",
     "tsc-multi": "^1.1.0",
     "typescript": "~5.1.6"
   }

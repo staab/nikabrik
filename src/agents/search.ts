@@ -1,10 +1,10 @@
 import type {Event} from 'nostr-tools';
 import {Navigator} from 'navigatr';
-import {createEvent, now} from 'paravel';
+import {createEvent} from '@coracle.social/util';
 import Fuse from 'fuse.js';
 import {throttle, tryFunc, seconds} from 'hurdak';
 import type {DVM} from '../dvm';
-import {getInputValue} from '../util';
+import {getInputValue, withExpiration} from '../util';
 
 type Result = {
   name: string;
@@ -91,7 +91,7 @@ export const configureSearchAgent = (opts: SearchAgentOpts) => (dvm: DVM) => {
 
       yield createEvent(event.kind + 1000, {
         content: JSON.stringify(tags),
-        tags: [['expiration', String(now() + seconds(1, 'hour'))]],
+        tags: withExpiration([], seconds(1, 'hour')),
       });
     },
   };
